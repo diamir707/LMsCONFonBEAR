@@ -6,6 +6,7 @@ from typing import (
     Union)
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 from sklearn.calibration import calibration_curve
 
 
@@ -37,17 +38,20 @@ def adaptive_calibration_error(
     return ace
 
 
-def weighted_average(grouped_df,
-                     value_col: str,
-                     weight_col: str = "instance"
+def weighted_average(groups: pd.DataFrame,
+                     predictions: str
                      ) -> float:
     """
     Implements the weighted average over all relations for a given column of
     correctness labels.
+    ---------------
+    :param groups: the per-relation grouped dataframe.
+    :param predictions: the column name of per-relation average of instance-level correctness.
+    :returns: the weighted average over all relations.
     """
-    weights = grouped_df[weight_col]
-    values = grouped_df[value_col]
-    return round((values * weights).sum() / weights.sum(), 6)
+    weights = groups["instance"]
+    values = groups[predictions]
+    return round((values*weights).sum()/weights.sum(), 6)
 
 
 def brier_score(predictions: List[int],
