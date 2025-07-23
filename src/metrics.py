@@ -13,29 +13,36 @@ from sklearn.calibration import calibration_curve
 def adaptive_calibration_error(
         predictions: List[int],
         confidences: List[float],
-        n_bins: int = 20
+        n_bins: int = 20,
+        norm: Literal["l1", "l2"] = "l1"
         ) -> float:
-    """Variant of the expected calibration error with adaptive bins, i.e.
+    """
+    Variant of the expected calibration error with adaptive bins, i.e.
     where each bin contains approximately the same number of samples.
+    Modified function adopted from Nixon et al. (2019):
+    https://github.com/JeremyNixon/uncertainty-metrics-1
     ---------------
     :param predictions: 1d array with the binaries if a prediction was correct/incorrect.
     :param confidences: 1d array with associated confidences.
     :param n_bins: int, number of bins.
-    :returns: float, the adaptive calibration error."""
+    :param norm: str, the norm applied to the errors.
+    :returns: float, the adaptive calibration error.
+    """
 
-    predictions = np.array(predictions)
-    confidences = np.array(confidences)
-
-    binned_correct, binned_conf = calibration_curve(predictions, confidences, n_bins=n_bins, strategy="quantile")
-    errors = []
-    for correct_bin, conf_bin in zip(binned_correct, binned_conf):
-        accuracy = np.mean(correct_bin)
-        confidence = np.mean(conf_bin)
-        error = accuracy - confidence
-        errors.append(np.abs(error))
-
-    ace = np.mean(errors)
-    return ace
+    binned_correct, binned_confs = calibration_curve(
+        y_true=predictions,
+        y_prob=confidences,
+        n_bins=n_bins,
+        strategy="quantile"
+    )
+    errors = np.abs(binned_correct-binned_confs)
+    if norm == "l1":
+        errors = errors
+    elif norm == "l2":
+        errors = np.square(errors)
+    else:
+        raise ValueError(f"Unknown norm: {norm}")
+    return np.mean(errors)
 
 
 def weighted_average(groups: pd.DataFrame,
@@ -68,8 +75,8 @@ def plot_calibration_curve(
         confidences: List[List[float]],
         n_bins: int = 20,
         binning_strategy: Literal["uniform", "quantile"] = "quantile",
-        linestyles: List[str] = "dotted",
-        markers: Union[List[str], None] = "*",
+        linestyles: List[str] = "solid",
+        markers: Union[List[str], None] = ".",
         labels: Optional[List[str]] = None,
         colors: Optional[List[str]] = None,
         axis: Optional[plt.Axes] = None
