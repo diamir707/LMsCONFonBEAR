@@ -32,13 +32,7 @@ def reduced_scores(row,
     template = row["template_indices"]
 
     # Combining indices per answer option
-    if not only_answers:
-        combined = []
-        for i in range(len(scores)):
-            combined_set = set(sub[i]) | set(obj[i]) | set(template[i])
-            combined.append(combined_set)
-    else:
-        combined = obj
+    combined = obj if only_answers else [sub[i] + obj[i] + template[i] for i in range(len(scores))]
 
     sentence_level_log_likelihoods = []
     for i in range(len(scores)):
@@ -64,7 +58,7 @@ def final_answer(group: pd.DataFrame,
     :param strategy: The final answer selection strategy.
     :returns: Predicted index (final answer), was-fail-flag, was-tie-flag.
     """
-    # Plurality Vote #
+    # Plurality Vote
     if strategy == "plurality":
         pred_counts = group["predicted_index"].value_counts()
         max_count = pred_counts.max()
@@ -80,7 +74,7 @@ def final_answer(group: pd.DataFrame,
         top = tied.loc[tied["base_conf"].idxmax()]  # use the one with highest confidence
         return top["predicted_index"], False, True  # answer, no fail, tie
 
-    # Majority Vote #
+    # Majority Vote
     elif strategy == "majority":
         num_templates = group["template"].nunique()
         pred_counts = group["predicted_index"].value_counts()
@@ -89,7 +83,7 @@ def final_answer(group: pd.DataFrame,
                 return pred, False, False       # answer, no fail, no tie
         return None, True, False                # otherwise no anser, fail, no tie
 
-    # Maximum-Confidence (Xiong et al., 2024) #
+    # Maximum-Confidence (Xiong et al., 2024)
     elif strategy == "max_conf":
         top_row = group.loc[group["base_conf"].idxmax()]
         return top_row["predicted_index"], False, False
@@ -147,13 +141,15 @@ def plot_accuracy_vs_metric(results_df,
 
 
 def evaluate_reductions(models: Union[str, List[str]] = "gpt2") -> pd.DataFrame:
-    """Helper function for our first experiment evaluting which reduction method is most
+    """
+    Helper function for our first experiment evaluting which reduction method is most
     effective. For each model and reduction strategy finds the ACE and accuracy. Only the
-    first template and (baseline) confidence is used."""
+    first template and (baseline) confidence is used.
+    """
     if isinstance(models, str):
         models = [models]
 
-    score_columns = [
+    reductions = [
         "pll_scores_sum",
         "pll_scores_avg",
         "pll_scores_answer_sum",
@@ -163,8 +159,7 @@ def evaluate_reductions(models: Union[str, List[str]] = "gpt2") -> pd.DataFrame:
     all_summary_rows = []
 
     for model in models:
-        model_path = model.split("/")[-1]
-        output_path = f"../results/scores/{model_path}"
+        output_path = f"../results/scores/{model.split('/')[-1]}"
         file_path = f"{output_path}/scores.json"
         results = pd.read_json(file_path, orient="records", lines=True)
         model_type = results["model_type"].iloc[0]
@@ -183,35 +178,34 @@ def evaluate_reductions(models: Union[str, List[str]] = "gpt2") -> pd.DataFrame:
             lambda row: reduced_scores(row, reduction="mean", only_answers=True),
             axis=1)
 
-        for col in score_columns:
-            results[f"{col}_correctly_predicted"] = results.apply(
-                lambda row: row["answer_idx"] == np.argmax(row[col]),
+        for reduction in reductions:
+            results[f"{reduction}_correctly_predicted"] = results.apply(
+                lambda row: row["answer_idx"] == np.argmax(row[reduction]),
                 axis=1
             )
-            results[f"{col}_confs"] = results.apply(
-                lambda row: np.sort(softmax(row[col]))[::-1],
+            results[f"{reduction}_confs"] = results.apply(
+                lambda row: np.sort(softmax(row[reduction]))[::-1],
                 axis=1
             )
-            results[f"{col}_base_conf"] = results.apply(
-                lambda row: row[f"{col}_confs"][0],
+            results[f"{reduction}_base_conf"] = results.apply(
+                lambda row: row[f"{reduction}_confs"][0],
                 axis=1
             )
 
             # Accuracy as the weighted average over all relations
             grouped = results.groupby("relation").agg({
                 "instance": "count",
-                f"{col}_correctly_predicted": "mean"
+                f"{reduction}_correctly_predicted": "mean"
             }).reset_index()
-            accuracy = weighted_average(grouped, f"{col}_correctly_predicted")
-            predictions = results[f"{col}_correctly_predicted"].astype(int)
-            confidences = results[f"{col}_base_conf"].tolist()
-            ace = adaptive_calibration_error(predictions, confidences)
-            ace = round(ace, 6)
+            accuracy = weighted_average(grouped, f"{reduction}_correctly_predicted")
+            predictions = results[f"{reduction}_correctly_predicted"].astype(int)
+            confidences = results[f"{reduction}_base_conf"].tolist()
+            ace = round(adaptive_calibration_error(predictions, confidences), 6)
 
             all_summary_rows.append({
-                "model": model_path,
+                "model": model.split("/")[-1],
                 "model_type": model_type,
-                "reduction": col,
+                "reduction": reduction,
                 "accuracy": accuracy,
                 "ace": ace
             })
@@ -226,10 +220,11 @@ def get_model_scores(model: str = "openai-community/gpt2",
                      templates: Union[int, List[int]] = 0,
                      batch_size: int = 32
                      ) -> None:
-    """Function used to obtain the model score using LM-PUB-QUIZ for specified templates.
-    Stores the raw (unreduced) scores per instance and template."""
-    model_path = model.split("/")[-1]
-    output_path = f"../results/{model_path}"
+    """
+    Function used to obtain the model score using LM-PUB-QUIZ for specified templates.
+    Stores the raw (unreduced) scores per instance and template.
+    """
+    output_path = f"../results/{model.split('/')[-1]}"
     file_path = f"{output_path}/scores.json"
 
     evaluator = Evaluator.from_model(model=model, model_type=model_type, device=device)
@@ -248,7 +243,7 @@ def get_model_scores(model: str = "openai-community/gpt2",
         temp_df["template"] = template
         results = pd.concat([results, temp_df], ignore_index=True)
     results["model_type"] = model_type
-    results["model"] = model_path
+    results["model"] = model.split("/")[-1]
     os.makedirs(output_path, exist_ok=True)
     results.to_json(file_path, orient="records", lines=True)
     print(f"Scores saved to: {file_path}")
