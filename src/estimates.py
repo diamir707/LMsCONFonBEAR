@@ -175,14 +175,14 @@ def get_confidence_estimates(model: str = "gpt2",
                              ) -> pd.DataFrame:
     """Function to obtain the instance-level results: confidence estimates,
     correctness-labels etc. used for our analysis later.
+    ---------------
     :param model: The model to evaluate.
     :param reduction: The reduction method for the token log-likelihoods.
     :param only_answers: Flag if only the answer tokens should correspond to the sentence-level log-likelihood.
     :returns: The dataframe with the final instance-level results for model."""
-    model_path = model.split("/")[-1]
 
     # Load the raw instance-level results
-    results = pd.read_json(f"../results/scores/{model_path}/scores.json",
+    results = pd.read_json(f"../results/scores/{model}/scores.json",
                            orient="records", lines=True)
 
     # Sentence-level log-likelihood per instance and answer option
@@ -213,19 +213,17 @@ def get_confidence_estimates(model: str = "gpt2",
     marker_df = marker_confidence(results)
 
     # Merge results: confidence scores and correctness per instance for the different approaches
-    summary_df = results.merge(weighted_df, on=["relation", "instance"])
-    summary_df = summary_df.merge(average_df, on=["relation", "instance"])
-    summary_df = summary_df.merge(consistency_df, on=["relation", "instance"])
-    summary_df = summary_df.merge(marker_df, on=["relation", "instance"])
-
-    # Estimates using only a single template, we keep the results from the first template, index 0
-    summary_df = summary_df[summary_df["template"] == 0].copy()
-
-    # Drop unnecessary columns
-    summary_df.drop(columns=["template", "tokens", "sub_indices",
-                             "obj_indices", "template_indices", "conf_scores"],
-                    inplace=True, errors="ignore")
-    summary_df["model"] = model_path
+    summary_df = (
+        results
+        .merge(weighted_df, on=["relation", "instance"])
+        .merge(average_df, on=["relation", "instance"])
+        .merge(consistency_df, on=["relation", "instance"])
+        .merge(marker_df, on=["relation", "instance"])
+        .query("template == 0")     # keep results from first template for single template estimates
+        .drop(columns=["template", "tokens", "sub_indices",
+                       "obj_indices", "template_indices", "conf_scores"])
+        .assign(model=model)
+    )
 
     # Load and merge domain metadata
     with open("../data/relation_info.json") as f:
