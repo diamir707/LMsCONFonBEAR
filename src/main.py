@@ -12,7 +12,7 @@ xlm_roberta = ["FacebookAI/xlm-roberta-base", "FacebookAI/xlm-roberta-large"]
 if __name__ == "__main__":
     for model in xlm_roberta:
         get_model_scores(
-            model=model,
+            model_id=model,
             model_type="MLM",
             templates=[0, 1, 2, 3, 4, 5, 6],
             device="cuda")

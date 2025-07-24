@@ -159,11 +159,11 @@ def evaluate_reductions(models: Union[str, List[str]] = "gpt2") -> pd.DataFrame:
     all_summary_rows = []
 
     for model in models:
-        output_path = f"../results/scores/{model.split('/')[-1]}"
+        output_path = f"../results/scores/{model}"
         file_path = f"{output_path}/scores.json"
         results = pd.read_json(file_path, orient="records", lines=True)
         model_type = results["model_type"].iloc[0]
-        results = results[results["template"] == 0]     # restrict analysis to the first template
+        results = results[results["template"] == 0]     # restrict analysis to the first template (base_conf)
 
         results["pll_scores_sum"] = results.apply(
             lambda row: reduced_scores(row, reduction="sum", only_answers=False),
@@ -203,7 +203,7 @@ def evaluate_reductions(models: Union[str, List[str]] = "gpt2") -> pd.DataFrame:
             ace = round(adaptive_calibration_error(predictions, confidences), 6)
 
             all_summary_rows.append({
-                "model": model.split("/")[-1],
+                "model": model,
                 "model_type": model_type,
                 "reduction": reduction,
                 "accuracy": accuracy,
@@ -213,7 +213,7 @@ def evaluate_reductions(models: Union[str, List[str]] = "gpt2") -> pd.DataFrame:
     return pd.DataFrame(all_summary_rows)
 
 
-def get_model_scores(model: str = "openai-community/gpt2",
+def get_model_scores(model_id: str = "openai-community/gpt2",
                      model_type: str = "CLM",
                      path_to_data: str = "../data/BEAR_extended",
                      device: str = "cuda",
@@ -224,10 +224,10 @@ def get_model_scores(model: str = "openai-community/gpt2",
     Function used to obtain the model score using LM-PUB-QUIZ for specified templates.
     Stores the raw (unreduced) scores per instance and template.
     """
-    output_path = f"../results/{model.split('/')[-1]}"
+    output_path = f"../results/{model_id.split('/')[-1]}"
     file_path = f"{output_path}/scores.json"
 
-    evaluator = Evaluator.from_model(model=model, model_type=model_type, device=device)
+    evaluator = Evaluator.from_model(model=model_id, model_type=model_type, device=device)
     bear = Dataset.from_path(path_to_data)
     results = pd.DataFrame()
 
@@ -238,12 +238,13 @@ def get_model_scores(model: str = "openai-community/gpt2",
             evaluator
             .evaluate_dataset(bear, template_index=template, batch_size=batch_size, reduction=None)
             .joined_instance_table()
+            .reset_index()
+            .assign(template=template)
         )
-        temp_df.reset_index(inplace=True)
-        temp_df["template"] = template
         results = pd.concat([results, temp_df], ignore_index=True)
+
     results["model_type"] = model_type
-    results["model"] = model.split("/")[-1]
+    results["model"] = model_id.split("/")[-1]
     os.makedirs(output_path, exist_ok=True)
     results.to_json(file_path, orient="records", lines=True)
     print(f"Scores saved to: {file_path}")
