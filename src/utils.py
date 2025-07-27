@@ -144,7 +144,7 @@ def evaluate_reductions(models: Union[str, List[str]] = "gpt2") -> pd.DataFrame:
     """
     Helper function for our first experiment evaluting which reduction method is most
     effective. For each model and reduction strategy finds the ACE and accuracy. Only the
-    first template and (baseline) confidence is used.
+    first template and base-confidence is used.
     """
     if isinstance(models, str):
         models = [models]

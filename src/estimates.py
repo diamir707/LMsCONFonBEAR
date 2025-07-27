@@ -8,11 +8,11 @@ from src.utils import final_answer, reduced_scores
 
 
 def base_confidence(instances_df: pd.DataFrame) -> pd.Series:
-    """Function to obtain the Baseline-Confidence (Ploner et al., 2024) as
+    """Function to obtain the Base-Confidence (Ploner et al., 2024) as
     defined in Equation C.1. Any template can be used for this estimate.
     ---------------
     :param instances_df: Dataframe with the instance-level results per template.
-    :returns: A pandas series of the Baseline-Confidence."""
+    :returns: A pandas series of the Base-Confidence."""
     return instances_df["conf_scores"].apply(lambda x: np.max(x))
 
 
@@ -141,7 +141,7 @@ def weighted_confidence(instances_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def marker_confidence(instances_df: pd.DataFrame) -> pd.DataFrame:
-    """Function to obtain a models prediction and associated (baseline) confidences
+    """Function to obtain a models prediction and associated base-confidences
     from epistemic marker injected templates (template indices 5 and 6).
     ---------------
     :param instances_df: DataFrame with instance-level results per template.
