@@ -114,14 +114,16 @@ def plot_accuracy_vs_metric(results_df,
             group["accuracy"],
             group[metric],
             marker=".",
+            markersize=8,
             linestyle="dotted",
+            linewidth=2,
             label=family
         )
 
-    ax.set_xlabel("Accuracy", labelpad=10)
-    ax.set_ylabel(metric.replace("_", " ").title(), labelpad=10)
-    ax.set_title(title, pad=15)
-    ax.legend(title="", loc="upper right", frameon=False)
+    ax.set_xlabel("Accuracy", labelpad=10, fontsize=12)
+    ax.set_ylabel(metric.replace("_", " ").title(), labelpad=10, fontsize=12)
+    ax.set_title(title, pad=15, fontsize=14)
+    ax.legend(title="", loc="upper right", frameon=False, fontsize=13)
 
     # Make the box around the plot visible
     for spine in ax.spines.values():
