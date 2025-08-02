@@ -115,11 +115,12 @@ def recalibrate_lms(
 
         metrics_list.append({
             "model": model_name,
+            "method": method,
+            "accuracy_training_set": np.mean(y_train),
             "brier_score_margin": brier_margin,
             "brier_score": brier,
             "ACE": ace,
             "ACE_margin": ace_margin,
-            "method": method
         })
 
     predictions_df = pd.concat(predictions_list, ignore_index=True)

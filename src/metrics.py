@@ -79,6 +79,9 @@ def plot_calibration_curve(
         markers: Union[List[str], None] = ".",
         labels: Optional[List[str]] = None,
         colors: Optional[List[str]] = None,
+        title_fontsize: int = 10,
+        legend_fontsize: int = 10,
+        axes_label_fontsize: int = 10,
         axis: Optional[plt.Axes] = None
         ) -> Tuple[plt.Figure, plt.Axes]:
     """Plots (multiple) calibration curves for bins as obtained from sklearn calibration curve."""
@@ -109,10 +112,10 @@ def plot_calibration_curve(
     # Styling: limit the axes to 0 and 1
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
-    ax.set_xlabel("Average Confidence", labelpad=10)
-    ax.set_ylabel("Average Accuracy", labelpad=10)
-    ax.set_title(title, pad=15)
-    ax.legend(loc="upper left", frameon=False)
+    ax.set_xlabel("Average Confidence", labelpad=10, fontsize=axes_label_fontsize)
+    ax.set_ylabel("Average Accuracy", labelpad=10, fontsize=axes_label_fontsize)
+    ax.set_title(title, pad=15, fontsize=title_fontsize)
+    ax.legend(loc="upper left", frameon=False, fontsize=legend_fontsize)
 
     # Styling: make the box visible
     for spine in ax.spines.values():
