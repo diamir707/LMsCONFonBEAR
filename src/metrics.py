@@ -82,6 +82,7 @@ def plot_calibration_curve(
         title_fontsize: int = 10,
         legend_fontsize: int = 10,
         axes_label_fontsize: int = 10,
+        label_identity_line: str = "_no_legend_",
         axis: Optional[plt.Axes] = None
         ) -> Tuple[plt.Figure, plt.Axes]:
     """Plots (multiple) calibration curves for bins as obtained from sklearn calibration curve."""
@@ -93,7 +94,7 @@ def plot_calibration_curve(
         fig = ax.figure
 
     # Identity line (perfect calibration): f(x)=x
-    ax.plot([0, 1], [0, 1], color="black", linestyle="solid", label="_nolegend_")
+    ax.plot([0, 1], [0, 1], color="black", linestyle="solid", label=label_identity_line)
 
     # Plot each calibration curve
     for i in range(len(predictions)):
